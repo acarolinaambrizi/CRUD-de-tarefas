@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
 
 interface TaskItemProps {
   task: Task;
@@ -15,6 +16,14 @@ interface TaskItemProps {
   onDelete: (id: string) => void;
   onUpdateTitle: (id: string, newTitle: string) => void;
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "Geral": "bg-slate-100 text-slate-600 border-slate-200",
+  "Trabalho": "bg-blue-50 text-blue-600 border-blue-100",
+  "Pessoal": "bg-purple-50 text-purple-600 border-purple-100",
+  "Compras": "bg-amber-50 text-amber-600 border-amber-100",
+  "Saúde": "bg-emerald-50 text-emerald-600 border-emerald-100",
+};
 
 export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -31,7 +40,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
   return (
     <div className={cn(
       "flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 group",
-      isCompleted ? "bg-slate-50 border-transparent" : "bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100"
+      isCompleted ? "bg-slate-50/50 border-transparent opacity-75" : "bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100"
     )}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button 
@@ -45,7 +54,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
           )}
         </button>
         
-        <div className="flex flex-col min-w-0 flex-1">
+        <div className="flex flex-col min-w-0 flex-1 gap-1">
           {isEditing ? (
             <div className="flex items-center gap-2">
               <Input 
@@ -64,14 +73,22 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
             </div>
           ) : (
             <>
-              <span className={cn(
-                "text-sm font-medium truncate transition-all text-slate-700",
-                isCompleted && "line-through text-slate-400"
-              )}>
-                {task.title}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-sm font-semibold truncate transition-all text-slate-700",
+                  isCompleted && "line-through text-slate-400"
+                )}>
+                  {task.title}
+                </span>
+                <Badge variant="outline" className={cn(
+                  "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border",
+                  CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Geral"]
+                )}>
+                  {task.category}
+                </Badge>
+              </div>
               {task.completed_at && isCompleted && (
-                <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   Concluído em {format(new Date(task.completed_at), "dd 'de' MMM, HH:mm", { locale: ptBR })}
                 </span>

@@ -7,16 +7,18 @@ import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, Trash2, Eraser } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, Trash2, Eraser, Search } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchTasks();
@@ -38,11 +40,11 @@ export default function Home() {
     }
   };
 
-  const addTask = async (title: string) => {
+  const addTask = async (title: string, category: string) => {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ title, status: 'pending' }])
+        .insert([{ title, category, status: 'pending' }])
         .select();
 
       if (error) throw error;
@@ -135,7 +137,7 @@ export default function Home() {
       const { error } = await supabase
         .from('tasks')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta tudo
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (error) throw error;
       setTasks([]);
@@ -146,6 +148,10 @@ export default function Home() {
   };
 
   const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         task.category.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
     if (filter === "pending") return task.status === "pending";
     if (filter === "completed") return task.status === "completed";
     return true;
@@ -200,6 +206,16 @@ export default function Home() {
         )}
 
         <div className="flex flex-col gap-4">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input 
+              placeholder="Buscar tarefas ou categorias..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 rounded-2xl bg-white border-slate-100 shadow-sm h-10 text-sm"
+            />
+          </div>
+
           <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
             <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl">
               <TabsTrigger value="all" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Todas</TabsTrigger>
@@ -244,7 +260,7 @@ export default function Home() {
               </div>
               <h3 className="text-slate-900 font-semibold mb-1">Nada por aqui!</h3>
               <p className="text-sm text-slate-500">
-                {filter === "all" ? "Adicione uma tarefa para começar." : "Nenhuma tarefa encontrada neste filtro."}
+                {searchQuery ? "Nenhum resultado para sua busca." : "Adicione uma tarefa para começar."}
               </p>
             </motion.div>
           ) : (
