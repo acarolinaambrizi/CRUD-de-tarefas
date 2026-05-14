@@ -8,6 +8,7 @@ import { TaskForm } from '@/components/task-form';
 import { TaskStats } from '@/components/task-stats';
 import { AuthScreen } from '@/components/auth-screen';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ProfileSettings } from '@/components/profile-settings';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter, Trash2 } from 'lucide-react';
@@ -27,6 +28,7 @@ import {
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
+  const [profileName, setProfileName] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -36,21 +38,37 @@ export default function Home() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchTasks();
-      else setLoading(false);
+      if (session) {
+        fetchTasks();
+        fetchProfile(session.user.id);
+      } else setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) fetchTasks();
-      else {
+      if (session) {
+        fetchTasks();
+        fetchProfile(session.user.id);
+      } else {
         setTasks([]);
+        setProfileName("");
         setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('first_name')
+      .eq('id', userId)
+      .single();
+    
+    if (data) setProfileName(data.first_name || "");
+    else setProfileName(session?.user?.email?.split('@')[0] || "Usuário");
+  };
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -186,17 +204,24 @@ export default function Home() {
       <header className="w-full mb-8 mt-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20"
+            >
               <ListTodo className="w-6 h-6 text-white" />
-            </div>
+            </motion.div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dyad Tasks</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Olá, {session?.user?.email?.split('@')[0]}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Olá, {profileName}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-1">
             <ThemeToggle />
+            {session?.user && (
+              <ProfileSettings userId={session.user.id} onUpdate={setProfileName} />
+            )}
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-rose-600 rounded-xl">
               <LogOut className="w-5 h-5" />
             </Button>
