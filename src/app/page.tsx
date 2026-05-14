@@ -5,10 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Task, TaskStatus, TaskPriority } from '@/types/task';
 import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
+import { TaskStats } from '@/components/task-stats';
 import { AuthScreen } from '@/components/auth-screen';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter, LayoutDashboard } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -163,8 +164,6 @@ export default function Home() {
     return true;
   });
 
-  const completedCount = tasks.filter(t => t.status === 'completed').length;
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-6 sm:p-8 max-w-md mx-auto font-sans">
       <header className="w-full mb-8 mt-6">
@@ -174,7 +173,7 @@ export default function Home() {
               <ListTodo className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Minhas Tarefas</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dyad Tasks</h1>
               <p className="text-xs text-slate-500 font-medium">Olá, {session?.user?.email?.split('@')[0]}</p>
             </div>
           </div>
@@ -184,24 +183,7 @@ export default function Home() {
           </Button>
         </div>
         
-        {tasks.length > 0 && (
-          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Progresso</span>
-              <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                {Math.round((completedCount / tasks.length) * 100)}%
-              </span>
-            </div>
-            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-              <motion.div 
-                className="bg-indigo-600 h-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(completedCount / tasks.length) * 100}%` }}
-                transition={{ duration: 0.8 }}
-              />
-            </div>
-          </div>
-        )}
+        <TaskStats tasks={tasks} />
 
         <div className="flex flex-col gap-4">
           <div className="flex gap-2">
