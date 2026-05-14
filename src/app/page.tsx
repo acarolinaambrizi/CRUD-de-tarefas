@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Task, TaskStatus } from '@/types/task';
+import { Task, TaskStatus, TaskPriority } from '@/types/task';
 import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
+import { AuthScreen } from '@/components/auth-screen';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, Trash2, Eraser, Search } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, Trash2, Eraser, Search, LogOut } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,16 +16,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function Home() {
+  const [session, setSession] = useState<any>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchTasks();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchTasks();
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchTasks();
+      else {
+        setTasks([]);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchTasks = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('tasks')
@@ -40,11 +58,18 @@ export default function Home() {
     }
   };
 
-  const addTask = async (title: string, category: string) => {
+  const addTask = async (title: string, category: string, priority: TaskPriority) => {
+    if (!session?.user) return;
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ title, category, status: 'pending' }])
+        .insert([{ 
+          title, 
+          category, 
+          priority, 
+          status: 'pending',
+          user_id: session.user.id 
+        }])
         .select();
 
       if (error) throw error;
@@ -68,14 +93,8 @@ export default function Home() {
         .eq('id', id);
 
       if (error) throw error;
-      
-      setTasks(tasks.map(t => 
-        t.id === id ? { ...t, status: newStatus, completed_at: completedAt } : t
-      ));
-      
-      if (newStatus === 'completed') {
-        toast.success("Tarefa concluída! 🎉");
-      }
+      setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus, completed_at: completedAt } : t));
+      if (newStatus === 'completed') toast.success("Tarefa concluída! 🎉");
     } catch (error: any) {
       toast.error("Erro ao atualizar status.");
     }
@@ -83,13 +102,8 @@ export default function Home() {
 
   const updateTaskTitle = async (id: string, newTitle: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ title: newTitle })
-        .eq('id', id);
-
+      const { error } = await supabase.from('tasks').update({ title: newTitle }).eq('id', id);
       if (error) throw error;
-      
       setTasks(tasks.map(t => t.id === id ? { ...t, title: newTitle } : t));
       toast.success("Título atualizado.");
     } catch (error: any) {
@@ -99,11 +113,7 @@ export default function Home() {
 
   const deleteTask = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('tasks').delete().eq('id', id);
       if (error) throw error;
       setTasks(tasks.filter(t => t.id !== id));
       toast.success("Tarefa removida.");
@@ -112,46 +122,17 @@ export default function Home() {
     }
   };
 
-  const clearCompleted = async () => {
-    const completedIds = tasks.filter(t => t.status === 'completed').map(t => t.id);
-    if (completedIds.length === 0) return;
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .in('id', completedIds);
-
-      if (error) throw error;
-      setTasks(tasks.filter(t => t.status !== 'completed'));
-      toast.success(`${completedIds.length} tarefas removidas.`);
-    } catch (error: any) {
-      toast.error("Erro ao limpar tarefas.");
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.info("Até logo!");
   };
 
-  const deleteAllTasks = async () => {
-    if (!confirm("Tem certeza que deseja excluir TODAS as tarefas?")) return;
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-
-      if (error) throw error;
-      setTasks([]);
-      toast.success("Todas as tarefas foram removidas.");
-    } catch (error: any) {
-      toast.error("Erro ao excluir todas as tarefas.");
-    }
-  };
+  if (!session && !loading) return <AuthScreen />;
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          task.category.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
-    
     if (filter === "pending") return task.status === "pending";
     if (filter === "completed") return task.status === "completed";
     return true;
@@ -169,37 +150,29 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Minhas Tarefas</h1>
-              <p className="text-xs text-slate-500 font-medium">Organize seu dia com facilidade</p>
+              <p className="text-xs text-slate-500 font-medium">Olá, {session?.user?.email?.split('@')[0]}</p>
             </div>
           </div>
           
-          {tasks.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={deleteAllTasks}
-              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-              title="Excluir tudo"
-            >
-              <Eraser className="w-5 h-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-rose-600 rounded-xl">
+            <LogOut className="w-5 h-5" />
+          </Button>
         </div>
         
         {tasks.length > 0 && (
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-6">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Seu Progresso</span>
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Progresso</span>
               <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                {tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0}%
+                {Math.round((completedCount / tasks.length) * 100)}%
               </span>
             </div>
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
               <motion.div 
                 className="bg-indigo-600 h-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0}%` }}
-                transition={{ duration: 0.8, ease: "circOut" }}
+                animate={{ width: `${(completedCount / tasks.length) * 100}%` }}
+                transition={{ duration: 0.8 }}
               />
             </div>
           </div>
@@ -209,7 +182,7 @@ export default function Home() {
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 
-              placeholder="Buscar tarefas ou categorias..." 
+              placeholder="Buscar tarefas..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 rounded-2xl bg-white border-slate-100 shadow-sm h-10 text-sm"
@@ -218,51 +191,27 @@ export default function Home() {
 
           <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
             <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl">
-              <TabsTrigger value="all" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Todas</TabsTrigger>
-              <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Pendentes</TabsTrigger>
-              <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Feitas</TabsTrigger>
+              <TabsTrigger value="all" className="rounded-xl text-xs font-semibold">Todas</TabsTrigger>
+              <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold">Pendentes</TabsTrigger>
+              <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold">Feitas</TabsTrigger>
             </TabsList>
           </Tabs>
-          
-          {completedCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={clearCompleted}
-              className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-500 self-end h-auto py-1 px-2"
-            >
-              <Trash2 className="w-3 h-3 mr-1" />
-              Limpar concluídas
-            </Button>
-          )}
         </div>
       </header>
 
       <main className="w-full flex-1 flex flex-col gap-8">
-        <section>
-          <TaskForm onAdd={addTask} />
-        </section>
+        <section><TaskForm onAdd={addTask} /></section>
 
         <section className="flex flex-col gap-3">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="w-10 h-10 animate-spin text-indigo-600/40" />
-              <p className="text-sm text-slate-400 animate-pulse">Sincronizando...</p>
             </div>
           ) : filteredTasks.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16 px-6 bg-white rounded-3xl border border-dashed border-slate-200"
-            >
-              <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-slate-300" />
-              </div>
-              <h3 className="text-slate-900 font-semibold mb-1">Nada por aqui!</h3>
-              <p className="text-sm text-slate-500">
-                {searchQuery ? "Nenhum resultado para sua busca." : "Adicione uma tarefa para começar."}
-              </p>
-            </motion.div>
+            <div className="text-center py-16 px-6 bg-white rounded-3xl border border-dashed border-slate-200">
+              <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-4" />
+              <p className="text-sm text-slate-500">Nenhuma tarefa encontrada.</p>
+            </div>
           ) : (
             <div className="space-y-3">
               <AnimatePresence mode="popLayout">
@@ -271,8 +220,8 @@ export default function Home() {
                     key={task.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, x: -10 }}
-                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: index * 0.03 }}
                     layout
                   >
                     <TaskItem 
@@ -289,10 +238,8 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="mt-auto pt-12 w-full">
-        <MadeWithDyad />
-      </footer>
-      <Toaster position="bottom-center" expand={false} richColors />
+      <footer className="mt-auto pt-12 w-full"><MadeWithDyad /></footer>
+      <Toaster position="bottom-center" richColors />
     </div>
   );
 }
