@@ -7,9 +7,10 @@ import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
 import { TaskStats } from '@/components/task-stats';
 import { AuthScreen } from '@/components/auth-screen';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter, LayoutDashboard } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter, Trash2 } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -134,6 +135,20 @@ export default function Home() {
     }
   };
 
+  const clearCompleted = async () => {
+    const completedIds = tasks.filter(t => t.status === 'completed').map(t => t.id);
+    if (completedIds.length === 0) return;
+
+    try {
+      const { error } = await supabase.from('tasks').delete().in('id', completedIds);
+      if (error) throw error;
+      setTasks(tasks.filter(t => t.status !== 'completed'));
+      toast.success(`${completedIds.length} tarefas removidas.`);
+    } catch (error: any) {
+      toast.error("Erro ao limpar tarefas.");
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.info("Até logo!");
@@ -164,23 +179,28 @@ export default function Home() {
     return true;
   });
 
+  const hasCompleted = tasks.some(t => t.status === 'completed');
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-6 sm:p-8 max-w-md mx-auto font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col items-center p-6 sm:p-8 max-w-md mx-auto font-sans transition-colors duration-300">
       <header className="w-full mb-8 mt-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200">
+            <div className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
               <ListTodo className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dyad Tasks</h1>
-              <p className="text-xs text-slate-500 font-medium">Olá, {session?.user?.email?.split('@')[0]}</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dyad Tasks</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Olá, {session?.user?.email?.split('@')[0]}</p>
             </div>
           </div>
           
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-rose-600 rounded-xl">
-            <LogOut className="w-5 h-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-rose-600 rounded-xl">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
         
         <TaskStats tasks={tasks} />
@@ -193,16 +213,16 @@ export default function Home() {
                 placeholder="Buscar tarefas..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 rounded-2xl bg-white border-slate-100 shadow-sm h-10 text-sm"
+                className="pl-10 rounded-2xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 shadow-sm h-10 text-sm"
               />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-2xl h-10 w-10 border-slate-100 bg-white shadow-sm">
+                <Button variant="outline" size="icon" className="rounded-2xl h-10 w-10 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                   <Filter className="w-4 h-4 text-slate-500" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 shadow-xl">
+              <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 dark:border-slate-800 shadow-xl">
                 <DropdownMenuLabel className="text-xs">Ordenar por</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setSortBy("created")} className="text-xs">Data de criação</DropdownMenuItem>
@@ -212,13 +232,26 @@ export default function Home() {
             </DropdownMenu>
           </div>
 
-          <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
-            <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl">
-              <TabsTrigger value="all" className="rounded-xl text-xs font-semibold">Todas</TabsTrigger>
-              <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold">Pendentes</TabsTrigger>
-              <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold">Feitas</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Tabs defaultValue="all" className="flex-1" onValueChange={setFilter}>
+              <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-2xl">
+                <TabsTrigger value="all" className="rounded-xl text-xs font-semibold">Todas</TabsTrigger>
+                <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold">Pendentes</TabsTrigger>
+                <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold">Feitas</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {hasCompleted && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={clearCompleted}
+                className="text-slate-400 hover:text-rose-600 rounded-xl h-10 w-10 bg-slate-100/50 dark:bg-slate-900/50"
+                title="Limpar concluídas"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -231,9 +264,9 @@ export default function Home() {
               <Loader2 className="w-10 h-10 animate-spin text-indigo-600/40" />
             </div>
           ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-16 px-6 bg-white rounded-3xl border border-dashed border-slate-200">
-              <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-4" />
-              <p className="text-sm text-slate-500">Nenhuma tarefa encontrada.</p>
+            <div className="text-center py-16 px-6 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+              <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma tarefa encontrada.</p>
             </div>
           ) : (
             <div className="space-y-3">
