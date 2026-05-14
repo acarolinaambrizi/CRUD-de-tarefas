@@ -47,13 +47,13 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
       <div className="flex gap-2">
         <Input
           placeholder="O que precisa ser feito?"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="rounded-2xl bg-slate-50 border-transparent focus-visible:ring-indigo-500 h-12 px-6 text-slate-600"
+          className="rounded-2xl bg-slate-50 dark:bg-slate-950 border-transparent focus-visible:ring-indigo-500 h-12 px-6 text-slate-600 dark:text-slate-300"
         />
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-indigo-600 shadow-lg">
@@ -87,7 +87,7 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
               <div className="flex-1 flex items-center gap-2">
                 <Tag className="w-4 h-4 text-slate-400" />
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-9 rounded-xl border-slate-100 text-xs bg-slate-50/50">
+                  <SelectTrigger className="h-9 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -101,7 +101,7 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
               <div className="flex-1 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-slate-400" />
                 <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-                  <SelectTrigger className="h-9 rounded-xl border-slate-100 text-xs bg-slate-50/50">
+                  <SelectTrigger className="h-9 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                     <SelectValue placeholder="Prioridade" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -120,14 +120,14 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-full h-9 justify-start text-left font-normal rounded-xl border-slate-100 text-xs bg-slate-50/50",
+                      "w-full h-9 justify-start text-left font-normal rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
                     {dueDate ? format(dueDate, "PPP", { locale: ptBR }) : <span>Data de entrega</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 shadow-xl" align="start">
+                <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 dark:border-slate-800 shadow-xl" align="start">
                   <Calendar
                     mode="single"
                     selected={dueDate}
@@ -143,7 +143,7 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
               placeholder="Notas adicionais..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="rounded-xl bg-slate-50 border-transparent focus-visible:ring-indigo-500 text-xs min-h-[80px]"
+              className="rounded-xl bg-slate-50 dark:bg-slate-950 border-transparent focus-visible:ring-indigo-500 text-xs min-h-[80px]"
             />
           </motion.div>
         )}
