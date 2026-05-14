@@ -8,12 +8,20 @@ import { TaskForm } from '@/components/task-form';
 import { AuthScreen } from '@/components/auth-screen';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, Trash2, Eraser, Search, LogOut } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, LogOut, Search, Filter } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
@@ -21,6 +29,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"created" | "priority" | "due">("created");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -58,7 +67,7 @@ export default function Home() {
     }
   };
 
-  const addTask = async (title: string, category: string, priority: TaskPriority) => {
+  const addTask = async (title: string, category: string, priority: TaskPriority, dueDate: Date | null, notes: string) => {
     if (!session?.user) return;
     try {
       const { data, error } = await supabase
@@ -67,6 +76,8 @@ export default function Home() {
           title, 
           category, 
           priority, 
+          notes,
+          due_date: dueDate ? dueDate.toISOString() : null,
           status: 'pending',
           user_id: session.user.id 
         }])
@@ -129,7 +140,21 @@ export default function Home() {
 
   if (!session && !loading) return <AuthScreen />;
 
-  const filteredTasks = tasks.filter(task => {
+  const priorityOrder = { "Alta": 3, "Média": 2, "Baixa": 1 };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (sortBy === "priority") {
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    }
+    if (sortBy === "due") {
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  const filteredTasks = sortedTasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          task.category.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
@@ -179,14 +204,30 @@ export default function Home() {
         )}
 
         <div className="flex flex-col gap-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Buscar tarefas..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-2xl bg-white border-slate-100 shadow-sm h-10 text-sm"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input 
+                placeholder="Buscar tarefas..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 rounded-2xl bg-white border-slate-100 shadow-sm h-10 text-sm"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-2xl h-10 w-10 border-slate-100 bg-white shadow-sm">
+                  <Filter className="w-4 h-4 text-slate-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 shadow-xl">
+                <DropdownMenuLabel className="text-xs">Ordenar por</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSortBy("created")} className="text-xs">Data de criação</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy("priority")} className="text-xs">Prioridade</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy("due")} className="text-xs">Data de entrega</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>

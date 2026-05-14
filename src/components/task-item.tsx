@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle, StickyNote, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
+import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TaskItemProps {
   task: Task;
@@ -34,6 +35,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
+  const [showNotes, setShowNotes] = useState(false);
   const isCompleted = task.status === 'completed';
 
   const handleSave = () => {
@@ -43,98 +45,141 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
     setIsEditing(false);
   };
 
+  const dueDateObj = task.due_date ? new Date(task.due_date) : null;
+  const isOverdue = dueDateObj && isPast(dueDateObj) && !isToday(dueDateObj) && !isCompleted;
+
   return (
     <div className={cn(
-      "flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 group",
+      "flex flex-col p-4 rounded-2xl border transition-all duration-200 group",
       isCompleted ? "bg-slate-50/50 border-transparent opacity-75" : "bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100"
     )}>
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <button 
-          onClick={() => onToggle(task.id, task.status)}
-          className="flex-shrink-0 transition-transform active:scale-90"
-        >
-          {isCompleted ? (
-            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-          ) : (
-            <Circle className="w-6 h-6 text-slate-300 group-hover:text-indigo-400" />
-          )}
-        </button>
-        
-        <div className="flex flex-col min-w-0 flex-1 gap-1">
-          {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Input 
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="h-8 text-sm py-1 px-2 focus-visible:ring-indigo-500"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              />
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={handleSave}>
-                <Check className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400" onClick={() => setIsEditing(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn(
-                  "text-sm font-semibold truncate transition-all text-slate-700",
-                  isCompleted && "line-through text-slate-400"
-                )}>
-                  {task.title}
-                </span>
-                <div className="flex gap-1.5">
-                  <Badge variant="outline" className={cn(
-                    "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border",
-                    CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Geral"]
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button 
+            onClick={() => onToggle(task.id, task.status)}
+            className="flex-shrink-0 transition-transform active:scale-90"
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            ) : (
+              <Circle className="w-6 h-6 text-slate-300 group-hover:text-indigo-400" />
+            )}
+          </button>
+          
+          <div className="flex flex-col min-w-0 flex-1 gap-1">
+            {isEditing ? (
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-8 text-sm py-1 px-2 focus-visible:ring-indigo-500"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={handleSave}>
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400" onClick={() => setIsEditing(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={cn(
+                    "text-sm font-semibold truncate transition-all text-slate-700",
+                    isCompleted && "line-through text-slate-400"
                   )}>
-                    {task.category}
-                  </Badge>
-                  {!isCompleted && (
+                    {task.title}
+                  </span>
+                  <div className="flex gap-1.5">
                     <Badge variant="outline" className={cn(
-                      "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border flex items-center gap-0.5",
-                      PRIORITY_COLORS[task.priority]
+                      "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border",
+                      CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Geral"]
                     )}>
-                      <AlertTriangle className="w-2 h-2" />
-                      {task.priority}
+                      {task.category}
                     </Badge>
+                    {!isCompleted && (
+                      <Badge variant="outline" className={cn(
+                        "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border flex items-center gap-0.5",
+                        PRIORITY_COLORS[task.priority]
+                      )}>
+                        <AlertTriangle className="w-2 h-2" />
+                        {task.priority}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {dueDateObj && (
+                    <span className={cn(
+                      "text-[10px] flex items-center gap-1 font-medium",
+                      isOverdue ? "text-rose-500" : "text-slate-400"
+                    )}>
+                      <Calendar className="w-3 h-3" />
+                      {isOverdue ? "Atrasada: " : "Entrega: "}
+                      {format(dueDateObj, "dd 'de' MMM", { locale: ptBR })}
+                    </span>
+                  )}
+                  {task.completed_at && isCompleted && (
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Concluído em {format(new Date(task.completed_at), "dd/MM, HH:mm", { locale: ptBR })}
+                    </span>
                   )}
                 </div>
-              </div>
-              {task.completed_at && isCompleted && (
-                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  Concluído em {format(new Date(task.completed_at), "dd 'de' MMM, HH:mm", { locale: ptBR })}
-                </span>
-              )}
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!isEditing && !isCompleted && (
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {task.notes && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowNotes(!showNotes)}
+              className={cn("rounded-full h-8 w-8", showNotes ? "text-indigo-600 bg-indigo-50" : "text-slate-400")}
+            >
+              <StickyNote className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {!isEditing && !isCompleted && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsEditing(true)}
+              className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full h-8 w-8"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setIsEditing(true)}
-            className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full h-8 w-8"
+            onClick={() => onDelete(task.id)}
+            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full h-8 w-8"
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5" />
           </Button>
-        )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => onDelete(task.id)}
-          className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full h-8 w-8"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {showNotes && task.notes && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mt-3 pt-3 border-t border-slate-50"
+          >
+            <p className="text-xs text-slate-500 leading-relaxed italic">
+              {task.notes}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
