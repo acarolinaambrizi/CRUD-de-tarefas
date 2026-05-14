@@ -7,10 +7,11 @@ import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, Filter } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, Trash2 } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -109,6 +110,24 @@ export default function Home() {
     }
   };
 
+  const clearCompleted = async () => {
+    const completedIds = tasks.filter(t => t.status === 'completed').map(t => t.id);
+    if (completedIds.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .in('id', completedIds);
+
+      if (error) throw error;
+      setTasks(tasks.filter(t => t.status !== 'completed'));
+      toast.success(`${completedIds.length} tarefas removidas.`);
+    } catch (error: any) {
+      toast.error("Erro ao limpar tarefas.");
+    }
+  };
+
   const filteredTasks = tasks.filter(task => {
     if (filter === "pending") return task.status === "pending";
     if (filter === "completed") return task.status === "completed";
@@ -137,27 +156,41 @@ export default function Home() {
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Seu Progresso</span>
               <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
-                {Math.round((completedCount / tasks.length) * 100)}%
+                {tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0}%
               </span>
             </div>
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
               <motion.div 
                 className="bg-indigo-600 h-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${(completedCount / tasks.length) * 100}%` }}
+                animate={{ width: `${tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0}%` }}
                 transition={{ duration: 0.8, ease: "circOut" }}
               />
             </div>
           </div>
         )}
 
-        <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
-          <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl">
-            <TabsTrigger value="all" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Todas</TabsTrigger>
-            <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Pendentes</TabsTrigger>
-            <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Feitas</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-col gap-4">
+          <Tabs defaultValue="all" className="w-full" onValueChange={setFilter}>
+            <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl">
+              <TabsTrigger value="all" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Todas</TabsTrigger>
+              <TabsTrigger value="pending" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Pendentes</TabsTrigger>
+              <TabsTrigger value="completed" className="rounded-xl text-xs font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">Feitas</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {completedCount > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearCompleted}
+              className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-500 self-end h-auto py-1 px-2"
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Limpar concluídas
+            </Button>
+          )}
+        </div>
       </header>
 
       <main className="w-full flex-1 flex flex-col gap-8">
