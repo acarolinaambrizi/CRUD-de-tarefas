@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, Tag } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Pessoal": "bg-purple-50 text-purple-600 border-purple-100",
   "Compras": "bg-amber-50 text-amber-600 border-amber-100",
   "Saúde": "bg-emerald-50 text-emerald-600 border-emerald-100",
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  "Alta": "text-rose-500 bg-rose-50 border-rose-100",
+  "Média": "text-amber-500 bg-amber-50 border-amber-100",
+  "Baixa": "text-emerald-500 bg-emerald-50 border-emerald-100",
 };
 
 export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
@@ -73,19 +79,30 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn(
                   "text-sm font-semibold truncate transition-all text-slate-700",
                   isCompleted && "line-through text-slate-400"
                 )}>
                   {task.title}
                 </span>
-                <Badge variant="outline" className={cn(
-                  "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border",
-                  CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Geral"]
-                )}>
-                  {task.category}
-                </Badge>
+                <div className="flex gap-1.5">
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border",
+                    CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Geral"]
+                  )}>
+                    {task.category}
+                  </Badge>
+                  {!isCompleted && (
+                    <Badge variant="outline" className={cn(
+                      "text-[9px] px-1.5 py-0 h-4 font-bold uppercase tracking-wider border flex items-center gap-0.5",
+                      PRIORITY_COLORS[task.priority]
+                    )}>
+                      <AlertTriangle className="w-2 h-2" />
+                      {task.priority}
+                    </Badge>
+                  )}
+                </div>
               </div>
               {task.completed_at && isCompleted && (
                 <span className="text-[10px] text-slate-400 flex items-center gap-1">
