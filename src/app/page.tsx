@@ -7,7 +7,7 @@ import { TaskItem } from '@/components/task-item';
 import { TaskForm } from '@/components/task-form';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
-import { Loader2, ListTodo, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, ListTodo, Sparkles, Trash2, Eraser } from 'lucide-react';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -128,6 +128,23 @@ export default function Home() {
     }
   };
 
+  const deleteAllTasks = async () => {
+    if (!confirm("Tem certeza que deseja excluir TODAS as tarefas?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta tudo
+
+      if (error) throw error;
+      setTasks([]);
+      toast.success("Todas as tarefas foram removidas.");
+    } catch (error: any) {
+      toast.error("Erro ao excluir todas as tarefas.");
+    }
+  };
+
   const filteredTasks = tasks.filter(task => {
     if (filter === "pending") return task.status === "pending";
     if (filter === "completed") return task.status === "completed";
@@ -149,6 +166,18 @@ export default function Home() {
               <p className="text-xs text-slate-500 font-medium">Organize seu dia com facilidade</p>
             </div>
           </div>
+          
+          {tasks.length > 0 && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={deleteAllTasks}
+              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+              title="Excluir tudo"
+            >
+              <Eraser className="w-5 h-5" />
+            </Button>
+          )}
         </div>
         
         {tasks.length > 0 && (
