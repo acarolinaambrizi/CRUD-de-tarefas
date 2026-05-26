@@ -17,25 +17,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from 'next/router'; // Adicionado
 
 export default function Home() {
+  const router = useRouter(); // Usando o hook do Next.js
+
   // ... (código existente)
-  
-  // Adicionando rotas para as novas páginas
-  if (window.location.pathname === '/password-reset') {
+
+  // Substituindo as verificações com window.location por router.pathname
+  if (router.pathname === '/password-reset') {
     return <PasswordReset />;
   }
-  if (window.location.pathname === '/reset-password') {
+  if (router.pathname === '/reset-password') {
     return <ResetPassword />;
   }
-  
+
   // ... (resto do código)
 };
