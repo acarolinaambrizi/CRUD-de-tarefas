@@ -10,12 +10,21 @@ import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Textarea } from '@/components/ui/textarea';
 
 interface TaskItemProps {
   task: Task;
-  onToggle: (id: string, currentStatus: string) => void;
+  onUpdateTask: (id: string, title: string, category: string, priority: string, dueDate: Date | null, notes: string) => void;
   onDelete: (id: string) => void;
-  onUpdateTitle: (id: string, newTitle: string) => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -32,15 +41,26 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Baixa": "text-emerald-500 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800",
 };
 
-export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
+export const TaskItem = ({ task, onUpdateTask, onDelete }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
+  const [editCategory, setEditCategory] = useState(task.category);
+  const [editPriority, setEditPriority] = useState(task.priority);
+  const [editDueDate, setEditDueDate] = useState(task.due_date ? new Date(task.due_date) : undefined);
+  const [editNotes, setEditNotes] = useState(task.notes || '');
   const [showNotes, setShowNotes] = useState(false);
   const isCompleted = task.status === 'completed';
 
   const handleSave = () => {
-    if (editTitle.trim() && editTitle !== task.title) {
-      onUpdateTitle(task.id, editTitle.trim());
+    if (isEditing) {
+      onUpdateTask(
+        task.id,
+        editTitle.trim(),
+        editCategory,
+        editPriority,
+        editDueDate || null,
+        editNotes.trim()
+      );
     }
     setIsEditing(false);
   };
@@ -56,7 +76,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button 
-            onClick={() => onToggle(task.id, task.status)}
+            onClick={() => onUpdateTask(task.id, task.title, task.category, task.priority, task.due_date, task.notes)}
             className="flex-shrink-0 transition-transform active:scale-90"
           >
             {isCompleted ? (
@@ -68,7 +88,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
           
           <div className="flex flex-col min-w-0 flex-1 gap-1">
             {isEditing ? (
-              <div className="flex items-center gap-2">
+              <div className="space-y-3">
                 <Input 
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
@@ -76,12 +96,78 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 />
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={handleSave}>
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
+                
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select value={editCategory} onValueChange={setEditCategory}>
+                      <SelectTrigger className="h-8 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
+                        <SelectValue placeholder="Categoria" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="Geral">Geral</SelectItem>
+                        <SelectItem value="Trabalho">Trabalho</SelectItem>
+                        <SelectItem value="Pessoal">Pessoal</SelectItem>
+                        <SelectItem value="Compras">Compras</SelectItem>
+                        <SelectItem value="Saúde">Saúde</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <Select value={editPriority} onValueChange={setEditPriority}>
+                      <SelectTrigger className="h-8 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
+                        <SelectValue placeholder="Prioridade" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="Baixa">Baixa</SelectItem>
+                        <SelectItem value="Média">Média</SelectItem>
+                        <SelectItem value="Alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full h-8 justify-start text-left font-normal rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50",
+                          !editDueDate && "text-muted-foreground"
+                        )}
+                      >
+                        {editDueDate ? format(editDueDate, "PPP", { locale: ptBR }) : <span>Data de entrega</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 dark:border-slate-800 shadow-xl" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={editDueDate}
+                        onSelect={setEditDueDate}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <Textarea 
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Notas adicionais..."
+                  className="rounded-xl bg-slate-50 dark:bg-slate-950 border-transparent focus-visible:ring-indigo-500 text-xs min-h-[60px]"
+                />
+                
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSave} className="rounded-xl h-8 text-xs">
+                    <Check className="w-3 h-3 mr-1" /> Salvar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)} className="rounded-xl h-8 text-xs">
+                    <X className="w-3 h-3 mr-1" /> Cancelar
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -135,7 +221,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {task.notes && (
+          {task.notes && !isEditing && (
             <Button 
               variant="ghost" 
               size="icon" 
@@ -145,7 +231,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
               <StickyNote className="w-3.5 h-3.5" />
             </Button>
           )}
-          {!isEditing && !isCompleted && (
+          {!isEditing && (
             <Button 
               variant="ghost" 
               size="icon" 
@@ -167,7 +253,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
       </div>
 
       <AnimatePresence>
-        {showNotes && task.notes && (
+        {showNotes && task.notes && !isEditing && (
           <motion.div 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
