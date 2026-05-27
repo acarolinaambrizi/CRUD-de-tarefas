@@ -35,42 +35,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"created" | "priority" | "due">("created");
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchTasks();
-        fetchProfile(session.user.id);
-      } else setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchTasks();
-        fetchProfile(session.user.id);
-      } else {
-        setTasks([]);
-        setProfileName("");
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('first_name')
-      .eq('id', userId)
-      .single();
-    
-    if (data) setProfileName(data.first_name || "");
-    else setProfileName(session?.user?.email?.split('@')[0] || "Usuário");
-  };
-
-  const fetchTasks = async () => {
+  // Refetch tasks from Supabase
+  const refreshTasks = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -87,15 +53,47 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    const fetchInitial = async () => {
+      if (session) {
+        await refreshTasks();
+        fetchProfile(session.user.id);
+      } else setLoading(false);
+    };
+    fetchInitial();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        refreshTasks();
+        fetchProfile(session.user.id);
+      } else {
+        setTasks([]);
+        setProfileName("");
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [session]);
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('first_name')
+      .eq('id', userId)
+      .single();
+    
+    if (data) setProfileName(data.first_name || "");
+    else setProfileName(session?.user?.email?.split('@')[0] || "Usuário");
+  };
+
   const addTask = async (title: string, category: string, priority: TaskPriority, dueDate: Date | null, notes: string) => {
     if (!session?.user) return;
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ 
-          title, 
-          category, 
-          priority, 
+        .insert([{           title, 
+          category,           priority, 
           notes,
           due_date: dueDate ? dueDate.toISOString() : null,
           status: 'pending',
@@ -107,6 +105,7 @@ export default function Home() {
       if (data) {
         setTasks([data[0], ...tasks]);
         toast.success("Tarefa adicionada!");
+        refreshTasks(); // Refresh to get latest data
       }
     } catch (error: any) {
       toast.error("Erro ao adicionar tarefa.");
@@ -126,6 +125,7 @@ export default function Home() {
       if (error) throw error;
       setTasks(tasks.map(t => t.id === id ? { ...t, status: newStatus, completed_at: completedAt } : t));
       if (newStatus === 'completed') toast.success("Tarefa concluída! 🎉");
+      refreshTasks(); // Refresh to get latest data
     } catch (error: any) {
       toast.error("Erro ao atualizar status.");
     }
@@ -137,6 +137,7 @@ export default function Home() {
       if (error) throw error;
       setTasks(tasks.map(t => t.id === id ? { ...t, title: newTitle } : t));
       toast.success("Título atualizado.");
+      refreshTasks(); // Refresh to get latest data
     } catch (error: any) {
       toast.error("Erro ao atualizar título.");
     }
@@ -148,7 +149,7 @@ export default function Home() {
       if (error) throw error;
       setTasks(tasks.filter(t => t.id !== id));
       toast.success("Tarefa removida.");
-    } catch (error: any) {
+      refreshTasks(); // Refresh to get latest data    } catch (error: any) {
       toast.error("Erro ao remover tarefa.");
     }
   };
@@ -162,6 +163,7 @@ export default function Home() {
       if (error) throw error;
       setTasks(tasks.filter(t => t.status !== 'completed'));
       toast.success(`${completedIds.length} tarefas removidas.`);
+      refreshTasks(); // Refresh to get latest data
     } catch (error: any) {
       toast.error("Erro ao limpar tarefas.");
     }
@@ -268,8 +270,7 @@ export default function Home() {
             {hasCompleted && (
               <Button 
                 variant="ghost" 
-                size="icon" 
-                onClick={clearCompleted}
+                size="icon"                 onClick={clearCompleted}
                 className="text-slate-400 hover:text-rose-600 rounded-xl h-10 w-10 bg-slate-100/50 dark:bg-slate-900/50"
                 title="Limpar concluídas"
               >
@@ -303,8 +304,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.03 }}
-                    layout
-                  >
+                    layout                  >
                     <TaskItem 
                       task={task} 
                       onToggle={toggleTask}
