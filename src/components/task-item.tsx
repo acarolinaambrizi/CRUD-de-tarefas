@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Task } from '@/types/task';
-import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle, StickyNote, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,13 +25,13 @@ interface TaskItemProps {
   task: Task;
   onToggle: (id: string, currentStatus: string) => void;
   onDelete: (id: string) => void;
-  onUpdateTitle: (id: string, newTitle: string) => void;
+  onUpdate: (id: string, updates: Partial<Task>) => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Geral": "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
   "Trabalho": "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
-  "Pessoal": "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800",
+  "Pessoal": "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:border-blue-800",
   "Compras": "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
   "Saúde": "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
 };
@@ -42,7 +42,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Baixa": "text-emerald-500 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800",
 };
 
-export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
+export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editCategory, setEditCategory] = useState(task.category);
@@ -54,8 +54,13 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
 
   const handleSave = () => {
     if (isEditing) {
-      // Update the task through the parent component's functions
-      onUpdateTitle(task.id, editTitle.trim());
+      onUpdate(task.id, {
+        title: editTitle.trim(),
+        category: editCategory,
+        priority: editPriority,
+        due_date: editDueDate ? editDueDate.toISOString() : null,
+        notes: editNotes.trim(),
+      });
       setIsEditing(false);
     }
   };
@@ -129,7 +134,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full h-8 justify-start text-left font-normal rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50",
+                          "w-full h-9 justify-start text-left font-normal rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50",
                           !editDueDate && "text-muted-foreground"
                         )}
                       >
@@ -149,9 +154,9 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemPr
                 </div>
                 
                 <Textarea 
+                  placeholder="Notas adicionais..."
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Notas adicionais..."
                   className="rounded-xl bg-slate-50 dark:bg-slate-950 border-transparent focus-visible:ring-indigo-500 text-xs min-h-[60px]"
                 />
                 
