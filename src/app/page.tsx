@@ -207,7 +207,7 @@ export default function Home() {
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20"
+              className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200"
             >
               <ListTodo className="w-6 h-6 text-white" />
             </motion.div>
@@ -307,7 +307,7 @@ export default function Home() {
                   >
                     <TaskItem 
                       task={task} 
-                      onToggle={toggleTask} 
+                      onToggle={toggleTask}
                       onDelete={deleteTask}
                       onUpdateTitle={updateTaskTitle}
                     />

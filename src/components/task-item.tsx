@@ -23,8 +23,9 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface TaskItemProps {
   task: Task;
-  onUpdateTask: (id: string, title: string, category: string, priority: string, dueDate: Date | null, notes: string) => void;
+  onToggle: (id: string, currentStatus: string) => void;
   onDelete: (id: string) => void;
+  onUpdateTitle: (id: string, newTitle: string) => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -41,7 +42,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Baixa": "text-emerald-500 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800",
 };
 
-export const TaskItem = ({ task, onUpdateTask, onDelete }: TaskItemProps) => {
+export const TaskItem = ({ task, onToggle, onDelete, onUpdateTitle }: TaskItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editCategory, setEditCategory] = useState(task.category);
@@ -53,16 +54,10 @@ export const TaskItem = ({ task, onUpdateTask, onDelete }: TaskItemProps) => {
 
   const handleSave = () => {
     if (isEditing) {
-      onUpdateTask(
-        task.id,
-        editTitle.trim(),
-        editCategory,
-        editPriority,
-        editDueDate || null,
-        editNotes.trim()
-      );
+      // Update the task through the parent component's functions
+      onUpdateTitle(task.id, editTitle.trim());
+      setIsEditing(false);
     }
-    setIsEditing(false);
   };
 
   const dueDateObj = task.due_date ? new Date(task.due_date) : null;
@@ -76,7 +71,7 @@ export const TaskItem = ({ task, onUpdateTask, onDelete }: TaskItemProps) => {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button 
-            onClick={() => onUpdateTask(task.id, task.title, task.category, task.priority, task.due_date, task.notes)}
+            onClick={() => onToggle(task.id, task.status)}
             className="flex-shrink-0 transition-transform active:scale-90"
           >
             {isCompleted ? (
