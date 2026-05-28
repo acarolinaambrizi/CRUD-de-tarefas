@@ -20,19 +20,7 @@ export const AuthScreen = () => {
         <Auth
           supabaseClient={supabase}
           appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: '#4f46e5',
-                  brandAccent: '#4338ca',
-                },
-                radii: {
-                  buttonBorderRadius: '12px',
-                  inputBorderRadius: '12px',
-                }
-              }
-            }
+            theme: ThemeSupa
           }}
           providers={[]}
           localization={{
