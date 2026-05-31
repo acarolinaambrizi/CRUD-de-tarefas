@@ -39,14 +39,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    const insertData = {
+      id: userId,
+      first_name,
+      last_name,
+      avatar_url
+    };
+
     const { data, error } = await supabase
       .from('profiles')
-      .insert([{
-        id: userId,
-        first_name,
-        last_name,
-        avatar_url
-      }])
+      .insert([insertData])
       .select()
       .single();
 
@@ -68,13 +70,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Partial<{
+      first_name: string;
+      last_name: string;
+      avatar_url: string | null;
+    }> = {};
     if (first_name !== undefined) updateData.first_name = first_name;
     if (last_name !== undefined) updateData.last_name = last_name;
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
 
-    const { data, error } = await supabase
-      .from('profiles')
+    const { data, error } = await supabase      .from('profiles')
       .update(updateData)
       .eq('id', userId)
       .select()

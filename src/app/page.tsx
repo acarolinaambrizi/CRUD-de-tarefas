@@ -42,8 +42,7 @@ export default function Home() {
   );
 
   // -----------------------------------------------------------------
-  // Auth handling
-  // -----------------------------------------------------------------
+  // Auth handling  // -----------------------------------------------------------------
   useEffect(() => {
     const {
       data: { subscription },
@@ -73,7 +72,9 @@ export default function Home() {
     if (error) {
       toast.error("Erro ao carregar tarefas");
     } else {
-      setTasks(data as Task[]);
+      // Type guard: data might be null, so we ensure it's an array
+      const tasksData = data as Task[] | null;
+      setTasks(tasksData ?? []);
     }
     setLoading(false);
   };
@@ -110,7 +111,9 @@ export default function Home() {
     if (error) {
       toast.error("Erro ao criar tarefa");
     } else {
-      setTasks([...(data as Task[]), ...tasks]);
+      // Type guard: data might be undefined, so we ensure it's an array
+      const newTasks = data as Task[] | undefined;
+      setTasks((prev) => [...prev, ...(newTasks ?? [])]);
       toast.success("Tarefa criada!");
     }
   };
@@ -130,7 +133,9 @@ export default function Home() {
     } else {
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === id ? { ...t, status: newStatus as any, completed_at: newStatus === "completed" ? new Date().toISOString() : null } : t
+          t.id === id
+            ? { ...t, status: newStatus as any, completed_at: newStatus === "completed" ? new Date().toISOString() : null }
+            : t
         )
       );
     }
@@ -167,8 +172,7 @@ export default function Home() {
   };
 
   // -----------------------------------------------------------------
-  // UI helpers
-  // -----------------------------------------------------------------
+  // UI helpers  // -----------------------------------------------------------------
   const filteredTasks = tasks.filter((t) => {
     if (filter === "completed") return t.status === "completed";
     if (filter === "pending") return t.status === "pending";
@@ -212,8 +216,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {session?.user && (
-            <ProfileSettings
-              userId={session.user.id}
+            <ProfileSettings              userId={session.user.id}
               onUpdate={setProfileName}
             />
           )}
