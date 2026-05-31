@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Task } from '@/types/task';
+import { Task, TaskPriority } from '@/types/task';
 import { CheckCircle2, Circle, Trash2, Calendar, Pencil, Check, X, AlertTriangle, StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,18 +46,11 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editCategory, setEditCategory] = useState(task.category);
-  const [editPriority, setEditPriority] = useState(task.priority);
-  const [editDueDate, setEditDueDate] = useState(task.due_date ? new Date(task.due_date) : undefined);
+  const [editPriority, setEditPriority] = useState<TaskPriority>(task.priority);
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>(task.due_date ? new Date(task.due_date) : undefined);
   const [editNotes, setEditNotes] = useState(task.notes || '');
   const [showNotes, setShowNotes] = useState(false);
   const isCompleted = task.status === 'completed';
-
-  // Validação tipada para o seletor de prioridade
-  const handleEditPriorityChange = (value: string) => {
-    if (value === 'Baixa' || value === 'Média' || value === 'Alta') {
-      setEditPriority(value as TaskPriority);
-    }
-  };
 
   const handleSave = () => {
     if (isEditing) {
@@ -121,7 +114,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                   </div>
                   
                   <div className="flex-1">
-                    <Select value={editPriority} onValueChange={handleEditPriorityChange}>
+                    <Select value={editPriority} onValueChange={(value) => setEditPriority(value as TaskPriority)}>
                       <SelectTrigger className="h-8 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                         <SelectValue placeholder="Prioridade" />
                       </SelectTrigger>
@@ -202,7 +195,8 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                     )}
                   </div>
                 </div>
-                                <div className="flex items-center gap-3">
+                
+                <div className="flex items-center gap-3">
                   {dueDateObj && (
                     <span className={cn(
                       "text-[10px] flex items-center gap-1 font-medium",
