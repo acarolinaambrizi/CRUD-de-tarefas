@@ -13,12 +13,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Loader2, LogOut } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -61,26 +56,22 @@ export default function Home() {
   // -----------------------------------------------------------------
   // Data fetching
   // -----------------------------------------------------------------
-  const fetchTasks = async (userId: string) => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+ const fetchTasks = async (userId: string) => {
+  setLoading(true);
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      toast.error("Erro ao carregar tarefas");
-    } else {
-      // Safely handle Supabase response without casting
-      if (Array.isArray(data)) {
-        setTasks(data);
-      } else {
-        setTasks([]);
-      }
-    }
-    setLoading(false);
-  };
+  if (error) {
+    toast.error("Erro ao carregar tarefas");
+  } else {
+    setTasks(Array.isArray(data) ? data : []);
+  }
+
+  setLoading(false);
+};
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -92,63 +83,73 @@ export default function Home() {
   // Handlers
   // -----------------------------------------------------------------
   const handleAddTask = async (
-    title: string,
-    category: string,
-    priority: TaskPriority,
-    dueDate: Date | null,
-    notes: string
-  ) => {
-    if (!session?.user?.id) return;
-    const { data, error } = await supabase      .from("tasks")
-      .insert([
-        {
-          title,
-          category,
-          priority,
-          due_date: dueDate ? dueDate.toISOString() : null,
-          notes,
-          status: "pending",
-          user_id: session.user.id,
-        },
-      ])
-      .select(); // ensure the inserted rows are returned    if (error) {
-      toast.error("Erro ao criar tarefa");
-    } else {
-      if (data && Array.isArray(data)) {
-        setTasks((prev) => [...prev, ...data]);
-      }
-      toast.success("Tarefa criada!");
-    }
-  };
+  title: string,
+  category: string,
+  priority: TaskPriority,
+  dueDate: Date | null,
+  notes: string
+) => {
+  if (!session?.user?.id) return;
 
-  const handleToggle = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "completed" ? "pending" : "completed";
-    const { error } = await supabase      .from("tasks")
-      .update({
-        status: newStatus,
-        completed_at:
-          newStatus === "completed" ? new Date().toISOString() : null,
-      })
-      .eq("id", id);
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert([
+      {
+        title,
+        category,
+        priority,
+        due_date: dueDate ? dueDate.toISOString() : null,
+        notes,
+        status: "pending",
+        user_id: session.user.id,
+      },
+    ])
+    .select();
 
-    if (error) {
-      toast.error("Erro ao atualizar tarefa");
-    } else {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                status: newStatus as any,
-                completed_at:
-                  newStatus === "completed"
-                    ? new Date().toISOString()
-                    : null,
-              }
-            : t        )
-      );
+  if (error) {
+    toast.error("Erro ao criar tarefa");
+  } else {
+    if (Array.isArray(data)) {
+      setTasks((prev) => [...prev, ...data]);
     }
-  };
+    toast.success("Tarefa criada!");
+  }
+};
+
+const handleToggle = async (id: string, currentStatus: string) => {
+  const newStatus =
+    currentStatus === "completed" ? "pending" : "completed";
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({
+      status: newStatus,
+      completed_at:
+        newStatus === "completed"
+          ? new Date().toISOString()
+          : null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    toast.error("Erro ao atualizar tarefa");
+  } else {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status: newStatus as any,
+              completed_at:
+                newStatus === "completed"
+                  ? new Date().toISOString()
+                  : null,
+            }
+          : t
+      )
+    );
+  }
+};
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
@@ -327,9 +328,9 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="py-4 text-center text-xs text-slate-400">
-        <MadeWithDyad />
-      </footer>
-    </div>
-  );
+<footer className="py-4 text-center text-xs text-slate-400">
+  <MadeWithDyad />
+</footer>
+</div>
+);
 }
