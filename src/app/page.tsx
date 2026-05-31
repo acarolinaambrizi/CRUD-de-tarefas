@@ -42,8 +42,7 @@ export default function Home() {
   );
 
   // -----------------------------------------------------------------
-  // Auth handling
-  // -----------------------------------------------------------------
+  // Auth handling  // -----------------------------------------------------------------
   useEffect(() => {
     const {
       data: { subscription },
@@ -97,8 +96,7 @@ export default function Home() {
     notes: string
   ) => {
     if (!session?.user?.id) return;
-    const { data, error } = await supabase
-      .from("tasks")
+    const { data, error } = await supabase      .from("tasks")
       .insert([
         {
           title,
@@ -110,14 +108,12 @@ export default function Home() {
           user_id: session.user.id,
         },
       ])
-      .select(); // ensure the inserted rows are returned
-
-    if (error) {
+      .select(); // ensure the inserted rows are returned    if (error) {
       toast.error("Erro ao criar tarefa");
     } else {
-      // Supabase may return null; treat it as an empty array
-      const newTasks = data as Task[] | null;
-      setTasks((prev) => [...prev, ...(newTasks ?? [])]);
+      if (data && Array.isArray(data)) {
+        setTasks((prev) => [...prev, ...data]);
+      }
       toast.success("Tarefa criada!");
     }
   };
@@ -147,8 +143,7 @@ export default function Home() {
                     ? new Date().toISOString()
                     : null,
               }
-            : t
-        )
+            : t        )
       );
     }
   };
@@ -262,8 +257,7 @@ export default function Home() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Buscar tarefa..."
+            <Input              placeholder="Buscar tarefa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-48"
