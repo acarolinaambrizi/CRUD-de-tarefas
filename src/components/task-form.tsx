@@ -46,6 +46,13 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
     }
   };
 
+  const handlePriorityChange = (value: string) => {
+    // Validação segura para garantir que o valor é um TaskPriority válido
+    if (value === 'Baixa' || value === 'Média' || value === 'Alta') {
+      setPriority(value as TaskPriority);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
       <div className="flex gap-2">
@@ -100,7 +107,7 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
 
               <div className="flex-1 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-slate-400" />
-                <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                <Select value={priority} onValueChange={handlePriorityChange}>
                   <SelectTrigger className="h-9 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                     <SelectValue placeholder="Prioridade" />
                   </SelectTrigger>

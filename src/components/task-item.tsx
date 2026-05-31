@@ -65,6 +65,13 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
     }
   };
 
+  const handleEditPriorityChange = (value: string) => {
+    // Validação segura para garantir que o valor é um TaskPriority válido
+    if (value === 'Baixa' || value === 'Média' || value === 'Alta') {
+      setEditPriority(value as TaskPriority);
+    }
+  };
+
   const dueDateObj = task.due_date ? new Date(task.due_date) : null;
   const isOverdue = dueDateObj && isPast(dueDateObj) && !isToday(dueDateObj) && !isCompleted;
 
@@ -114,7 +121,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                   </div>
                   
                   <div className="flex-1">
-                    <Select value={editPriority} onValueChange={setEditPriority}>
+                    <Select value={editPriority} onValueChange={handleEditPriorityChange}>
                       <SelectTrigger className="h-8 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                         <SelectValue placeholder="Prioridade" />
                       </SelectTrigger>
