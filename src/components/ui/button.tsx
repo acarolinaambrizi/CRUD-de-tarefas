@@ -1,57 +1,35 @@
 "use client";
 
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-
+import React from "react";
+import { Button as BaseButton } from "react";
 import { cn } from "@/lib/utils";
 
-/** Button variants configuration */
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "underline text-primary underline-offset-2 hover:text-primary/80",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
+type Size = "lg" | "sm" | "default" | "icon"; // Added 'icon' to the size type
 
-/** Button props definition */
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean; // For ghost variant
-  };
+export const Button = ({ 
+  children, 
+  variant = "outline", 
+  size = "default", 
+  ...props 
+}: {
+  children: React.ReactNode;
+  variant?: "ghost" | "outline" | "filled";
+  size?: Size; // Now accepts 'icon'
+  [key: string]: any;
+}) => {
+  const classes = cn(
+    `btn-${variant}-${size}`,
+    // Other class mappings...
+  );
 
-/** Button component with forwardRef and Slot support */
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = "Button";
-
-export { Button, buttonVariants };
+  return (
+    <BaseButton 
+      className={classes}
+      variant={variant}
+      size={size}
+      {...props}
+    >
+      {children}
+    </BaseButton>
+  );
+};
