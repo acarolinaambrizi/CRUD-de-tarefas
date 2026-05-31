@@ -114,7 +114,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                   </div>
                   
                   <div className="flex-1">
-                    <Select value={editPriority} onValueChange={(value) => setEditPriority(value as TaskPriority)}>
+                    <Select value={editPriority} onValueChange={(value: string) => setEditPriority(value as TaskPriority)}>
                       <SelectTrigger className="h-8 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                         <SelectValue placeholder="Prioridade" />
                       </SelectTrigger>

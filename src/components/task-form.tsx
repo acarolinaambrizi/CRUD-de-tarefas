@@ -100,7 +100,7 @@ export const TaskForm = ({ onAdd }: TaskFormProps) => {
 
               <div className="flex-1 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-slate-400" />
-                <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                <Select value={priority} onValueChange={(value: string) => setPriority(value as TaskPriority)}>
                   <SelectTrigger className="h-9 rounded-xl border-slate-100 dark:border-slate-800 text-xs bg-slate-50/50 dark:bg-slate-950/50">
                     <SelectValue placeholder="Prioridade" />
                   </SelectTrigger>
