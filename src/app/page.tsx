@@ -35,8 +35,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<"created" | "priority" | "due">("created");
 
   // -----------------------------------------------------------------
-  // Auth handling
-  // -----------------------------------------------------------------
+  // Auth handling  // -----------------------------------------------------------------
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -82,8 +81,7 @@ export default function Home() {
   }, [session]);
 
   // -----------------------------------------------------------------
-  // Handlers
-  // -----------------------------------------------------------------
+  // Handlers  // -----------------------------------------------------------------
   const handleAddTask = async (
     title: string,
     category: string,
@@ -194,9 +192,7 @@ export default function Home() {
 
   const sortedTasks = [...searchedTasks].sort((a, b) => {
     if (sortBy === "created") {
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
     if (sortBy === "priority") {
       const order = { Alta: 3, Média: 2, Baixa: 1 };
@@ -229,10 +225,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {session?.user && (
-            <ProfileSettings
-              userId={session.user.id}
-              onUpdate={setProfileName}
-            />
+            <ProfileSettings userId={session.user.id} onUpdate={setProfileName} />
           )}
           <Button
             variant="ghost"
@@ -262,8 +255,8 @@ export default function Home() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-48"
             />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <DropdownMenu asChild>
+              <DropdownMenuTrigger>
                 <Button variant="outline" size="sm">
                   Filtrar: {filter}
                 </Button>
@@ -275,16 +268,15 @@ export default function Home() {
                   Todas
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setFilter("pending")}>
-                  Pendentes
-                </DropdownMenuItem>
+                  Pendentes                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setFilter("completed")}>
                   Concluídas
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <DropdownMenu asChild>
+              <DropdownMenuTrigger>
                 <Button variant="outline" size="sm">
                   Ordenar: {sortBy}
                 </Button>
@@ -296,8 +288,7 @@ export default function Home() {
                   Criação
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setSortBy("priority")}>
-                  Prioridade
-                </DropdownMenuItem>
+                  Prioridade                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setSortBy("due")}>
                   Data de entrega
                 </DropdownMenuItem>
@@ -314,8 +305,7 @@ export default function Home() {
         ) : (
           <AnimatePresence>
             {sortedTasks.map((task) => (
-              <TaskItem
-                key={task.id}
+              <TaskItem                key={task.id}
                 task={task}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
