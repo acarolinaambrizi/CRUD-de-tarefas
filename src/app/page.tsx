@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ProfileSettings } from "@/components/profile-settings";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { Loader2, LogOut, Search, Filter, Trash2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -42,7 +42,8 @@ export default function Home() {
   );
 
   // -----------------------------------------------------------------
-  // Auth handling  // -----------------------------------------------------------------
+  // Auth handling
+  // -----------------------------------------------------------------
   useEffect(() => {
     const {
       data: { subscription },
@@ -72,7 +73,7 @@ export default function Home() {
     if (error) {
       toast.error("Erro ao carregar tarefas");
     } else {
-      // Type guard: data might be null, so we ensure it's an array
+      // Supabase may return null; ensure we always set an array
       const tasksData = data as Task[] | null;
       setTasks(tasksData ?? []);
     }
@@ -96,23 +97,26 @@ export default function Home() {
     notes: string
   ) => {
     if (!session?.user?.id) return;
-    const { data, error } = await supabase.from("tasks").insert([
-      {
-        title,
-        category,
-        priority,
-        due_date: dueDate ? dueDate.toISOString() : null,
-        notes,
-        status: "pending",
-        user_id: session.user.id,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([
+        {
+          title,
+          category,
+          priority,
+          due_date: dueDate ? dueDate.toISOString() : null,
+          notes,
+          status: "pending",
+          user_id: session.user.id,
+        },
+      ])
+      .select(); // ensure the inserted rows are returned
 
     if (error) {
       toast.error("Erro ao criar tarefa");
     } else {
-      // Type guard: data might be undefined, so we ensure it's an array
-      const newTasks = data as Task[] | undefined;
+      // Supabase may return null; treat it as an empty array
+      const newTasks = data as Task[] | null;
       setTasks((prev) => [...prev, ...(newTasks ?? [])]);
       toast.success("Tarefa criada!");
     }
@@ -124,7 +128,8 @@ export default function Home() {
       .from("tasks")
       .update({
         status: newStatus,
-        completed_at: newStatus === "completed" ? new Date().toISOString() : null,
+        completed_at:
+          newStatus === "completed" ? new Date().toISOString() : null,
       })
       .eq("id", id);
 
@@ -134,7 +139,14 @@ export default function Home() {
       setTasks((prev) =>
         prev.map((t) =>
           t.id === id
-            ? { ...t, status: newStatus as any, completed_at: newStatus === "completed" ? new Date().toISOString() : null }
+            ? {
+                ...t,
+                status: newStatus as any,
+                completed_at:
+                  newStatus === "completed"
+                    ? new Date().toISOString()
+                    : null,
+              }
             : t
         )
       );
@@ -156,7 +168,9 @@ export default function Home() {
     if (error) {
       toast.error("Erro ao atualizar tarefa");
     } else {
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+      );
       toast.success("Tarefa atualizada");
     }
   };
@@ -172,7 +186,8 @@ export default function Home() {
   };
 
   // -----------------------------------------------------------------
-  // UI helpers  // -----------------------------------------------------------------
+  // UI helpers
+  // -----------------------------------------------------------------
   const filteredTasks = tasks.filter((t) => {
     if (filter === "completed") return t.status === "completed";
     if (filter === "pending") return t.status === "pending";
@@ -185,15 +200,19 @@ export default function Home() {
 
   const sortedTasks = [...searchedTasks].sort((a, b) => {
     if (sortBy === "created") {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     }
     if (sortBy === "priority") {
       const order = { Alta: 3, Média: 2, Baixa: 1 };
       return (order[b.priority] ?? 0) - (order[a.priority] ?? 0);
     }
     if (sortBy === "due") {
-      return (a.due_date ? new Date(a.due_date).getTime() : 0) -
-        (b.due_date ? new Date(b.due_date).getTime() : 0);
+      return (
+        (a.due_date ? new Date(a.due_date).getTime() : 0) -
+        (b.due_date ? new Date(b.due_date).getTime() : 0)
+      );
     }
     return 0;
   });
@@ -216,7 +235,8 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {session?.user && (
-            <ProfileSettings              userId={session.user.id}
+            <ProfileSettings
+              userId={session.user.id}
               onUpdate={setProfileName}
             />
           )}
