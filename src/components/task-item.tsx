@@ -52,6 +52,13 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
   const [showNotes, setShowNotes] = useState(false);
   const isCompleted = task.status === 'completed';
 
+  // Validação tipada para o seletor de prioridade
+  const handleEditPriorityChange = (value: string) => {
+    if (value === 'Baixa' || value === 'Média' || value === 'Alta') {
+      setEditPriority(value as TaskPriority);
+    }
+  };
+
   const handleSave = () => {
     if (isEditing) {
       onUpdate(task.id, {
@@ -62,13 +69,6 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
         notes: editNotes.trim(),
       });
       setIsEditing(false);
-    }
-  };
-
-  const handleEditPriorityChange = (value: string) => {
-    // Validação segura para garantir que o valor é um TaskPriority válido
-    if (value === 'Baixa' || value === 'Média' || value === 'Alta') {
-      setEditPriority(value as TaskPriority);
     }
   };
 
@@ -153,8 +153,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                         mode="single"
                         selected={editDueDate}
                         onSelect={setEditDueDate}
-                        initialFocus
-                        locale={ptBR}
+                        initialFocus                        locale={ptBR}
                       />
                     </PopoverContent>
                   </Popover>
@@ -203,8 +202,7 @@ export const TaskItem = ({ task, onToggle, onDelete, onUpdate }: TaskItemProps) 
                     )}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3">
                   {dueDateObj && (
                     <span className={cn(
                       "text-[10px] flex items-center gap-1 font-medium",
