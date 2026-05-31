@@ -72,9 +72,12 @@ export default function Home() {
     if (error) {
       toast.error("Erro ao carregar tarefas");
     } else {
-      // Supabase may return null; ensure we always set an array
-      const tasksData = data as Task[] | null;
-      setTasks(tasksData ?? []);
+      // Safely handle Supabase response without casting
+      if (Array.isArray(data)) {
+        setTasks(data);
+      } else {
+        setTasks([]);
+      }
     }
     setLoading(false);
   };
@@ -120,8 +123,7 @@ export default function Home() {
 
   const handleToggle = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "completed" ? "pending" : "completed";
-    const { error } = await supabase
-      .from("tasks")
+    const { error } = await supabase      .from("tasks")
       .update({
         status: newStatus,
         completed_at:
@@ -225,8 +227,7 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-          Dyad Tasks
-        </h1>
+          Dyad Tasks        </h1>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           {session?.user && (
