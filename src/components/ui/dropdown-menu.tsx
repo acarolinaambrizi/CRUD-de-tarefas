@@ -29,14 +29,11 @@ const dropdownMenuContentVariants = cva(
 type DropdownMenuProps = React.ComponentPropsWithoutRef<
   typeof DropdownMenuPrimitive.Root
 >;
-const DropdownMenu = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Root>,
-  DropdownMenuProps
->(({ children, ...props }, ref) => (
-  <DropdownMenuPrimitive.Root ref={ref} {...props}>
+const DropdownMenu = ({ children, ...props }: DropdownMenuProps) => (
+  <DropdownMenuPrimitive.Root {...props}>
     {children}
   </DropdownMenuPrimitive.Root>
-));
+);
 DropdownMenu.displayName = "DropdownMenu";
 
 /* -----------------------------------------------------------------
