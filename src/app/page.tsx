@@ -1,1 +1,330 @@
-"use client"; import React, { useEffect, useState } from "react"; import { supabase } from "@/integrations/supabase/client"; import { Task, TaskPriority, TaskStatus } from "@/types/task"; import { TaskItem } from "@/components/task-item"; import { TaskForm } from "@/components/task-form"; import { TaskStats } from "@/components/task-stats"; import { AuthScreen } from "@/components/auth-screen"; import { ThemeToggle } from "@/components/theme-toggle"; import { ProfileSettings } from "@/components/profile-settings"; import { toast } from "sonner"; import { Toaster } from "@/components/ui/sonner"; import { Loader2, LogOut } from "lucide-react"; import { MadeWithDyad } from "@/components/made-with-dyad"; import { motion, AnimatePresence } from "framer-motion"; import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"; import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input"; export default function Home() { const [session, setSession] = useState<any>(null); const [profileName, setProfileName] = useState<string>(""); const [tasks, setTasks] = useState<Task[]>([]); const [loading, setLoading] = useState(true); const [filter, setFilter] = useState<string>("all"); const [searchQuery, setSearchQuery] = useState(""); const [sortBy, setSortBy] = useState<"created" | "priority" | "due">("created"); // ----------------------------------------------------------------- // Auth handling // ----------------------------------------------------------------- useEffect(() => { const { data: { subscription } } = supabase.auth.onAuthStateChange( (_event, session) => { setSession(session); } ); // Check initial session supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); }); return () => subscription.unsubscribe(); }, []); // ----------------------------------------------------------------- // Data fetching // ----------------------------------------------------------------- const fetchTasks = async (userId: string) => { setLoading(true); const { data, error } = await supabase .from("tasks") .select("*") .eq("user_id", userId) .order("created_at", { ascending: false }); if (error) { toast.error("Erro ao carregar tarefas"); } else { if (Array.isArray(data)) { setTasks(data); } else { setTasks([]); } } setLoading(false); }; useEffect(() => { if (session?.user?.id) { fetchTasks(session.user.id); } }, [session]); // ----------------------------------------------------------------- // Handlers // ----------------------------------------------------------------- const handleAddTask = async ( title: string, category: string, priority: TaskPriority, dueDate: Date | null, notes: string ) => { if (!session?.user?.id) return; const { data, error } = await supabase .from("tasks") .insert([ { title, category, priority, due_date: dueDate ? dueDate.toISOString() : null, notes, status: "pending", user_id: session.user.id, }, ]) .select(); if (error) { toast.error("Erro ao criar tarefa"); } else { if (data && Array.isArray(data)) { setTasks((prev) => [...prev, ...data]); } toast.success("Tarefa criada!"); } }; const handleToggle = async (id: string, currentStatus: string) => { const newStatus = currentStatus === "completed" ? "pending" : "completed"; const { error } = await supabase .from("tasks") .update({ status: newStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null, }) .eq("id", id); if (error) { toast.error("Erro ao atualizar tarefa"); } else { setTasks((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus as TaskStatus, completed_at: newStatus === "completed" ? new Date().toISOString() : null, } : t ) ); } }; const handleDelete = async (id: string) => { const { error } = await supabase.from("tasks").delete().eq("id", id); if (error) { toast.error("Erro ao excluir tarefa"); } else { setTasks((prev) => prev.filter((t) => t.id !== id)); toast.success("Tarefa excluída"); } }; const handleUpdate = async (id: string, updates: Partial<Task>) => { const { error } = await supabase.from("tasks").update(updates).eq("id", id); if (error) { toast.error("Erro ao atualizar tarefa"); } else { setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)) ); toast.success("Tarefa atualizada"); } }; const handleLogout = async () => { const { error } = await supabase.auth.signOut(); if (error) { toast.error("Erro ao sair"); } else { setSession(null); toast.success("Desconectado"); } }; // ----------------------------------------------------------------- // UI helpers // ----------------------------------------------------------------- const filteredTasks = tasks.filter((t) => { if (filter === "completed") return t.status === "completed"; if (filter === "pending") return t.status === "pending"; return true; }); const searchedTasks = filteredTasks.filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()) ); const sortedTasks = [...searchedTasks].sort((a, b) => { if (sortBy === "created") { return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); } if (sortBy === "priority") { const order = { Alta: 3, Média: 2, Baixa: 1 }; return (order[b.priority] ?? 0) - (order[a.priority] ?? 0); } if (sortBy === "due") { return ( (a.due_date ? new Date(a.due_date).getTime() : 0) - (b.due_date ? new Date(b.due_date).getTime() : 0) ); } return 0; }); // ----------------------------------------------------------------- // Render // ----------------------------------------------------------------- if (!session) { return <AuthScreen />; } return ( <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col"> <Toaster /> {/* Header */} <header className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800"> <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100"> Dyad Tasks </h1> <div className="flex items-center gap-2"> <ThemeToggle /> {session?.user && ( <ProfileSettings userId={session.user.id} onUpdate={setProfileName} /> )} <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-400 hover:text-rose-600 rounded-xl" > <LogOut className="w-5 h-5" /> </Button> </div> </header> {/* Main content */} <main className="flex-1 p-4 space-y-6 max-w-4xl mx-auto w-full"> {/* Stats */} <TaskStats tasks={tasks} /> {/* Form */} <TaskForm onAdd={handleAddTask} /> {/* Filters */} <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"> <div className="flex items-center gap-2"> <Input placeholder="Buscar tarefa..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-48" /> <DropdownMenu> <DropdownMenuTrigger asChild> <Button variant="outline" size="sm"> Filtrar: {filter} </Button> </DropdownMenuTrigger> <DropdownMenuContent> <DropdownMenuLabel>Filtros</DropdownMenuLabel> <DropdownMenuSeparator /> <DropdownMenuItem onSelect={() => setFilter("all")}> Todas </DropdownMenuItem> <DropdownMenuItem onSelect={() => setFilter("pending")}> Pendentes </DropdownMenuItem> <DropdownMenuItem onSelect={() => setFilter("completed")}> Concluídas </DropdownMenuItem> </DropdownMenuContent> </DropdownMenu> <DropdownMenu> <DropdownMenuTrigger asChild> <Button variant="outline" size="sm"> Ordenar: {sortBy} </Button> </DropdownMenuTrigger> <DropdownMenuContent> <DropdownMenuLabel>Ordenar por</DropdownMenuLabel> <DropdownMenuSeparator /> <DropdownMenuItem onSelect={() => setSortBy("created")}> Criação </DropdownMenuItem> <DropdownMenuItem onSelect={() => setSortBy("priority")}> Prioridade </DropdownMenuItem> <DropdownMenuItem onSelect={() => setSortBy("due")}> Data de entrega </DropdownMenuItem> </DropdownMenuContent> </DropdownMenu> </div> </div> {/* Task list */} {loading ? ( <div className="flex justify-center py-8"> <Loader2 className="animate-spin w-8 h-8 text-indigo-600" /> </div> ) : ( <AnimatePresence> {sortedTasks.map((task) => ( <TaskItem key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} onUpdate={handleUpdate} /> ))} </AnimatePresence> )} </main> <footer className="py-4 text-center text-xs text-slate-400"> <MadeWithDyad /> </footer> </div> ); }
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Task, TaskPriority, TaskStatus } from "@/types/task";
+import { TaskItem } from "@/components/task-item";
+import { TaskForm } from "@/components/task-form";
+import { TaskStats } from "@/components/task-stats";
+import { AuthScreen } from "@/components/auth-screen";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ProfileSettings } from "@/components/profile-settings";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+import { Loader2, LogOut } from "lucide-react";
+import { MadeWithDyad } from "@/components/made-with-dyad";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export default function Home() {
+  const [session, setSession] = useState<any>(null);
+  const [profileName, setProfileName] = useState<string>("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"created" | "priority" | "due">("created");
+
+  // -----------------------------------------------------------------
+  // Auth handling
+  // -----------------------------------------------------------------
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // -----------------------------------------------------------------
+  // Data fetching
+  // -----------------------------------------------------------------
+  const fetchTasks = async (userId: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Erro ao carregar tarefas");
+    } else {
+      if (Array.isArray(data)) {
+        setTasks(data);
+      } else {
+        setTasks([]);
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchTasks(session.user.id);
+    }
+  }, [session]);
+
+  // -----------------------------------------------------------------
+  // Handlers
+  // -----------------------------------------------------------------
+  const handleAddTask = async (
+    title: string,
+    category: string,
+    priority: TaskPriority,
+    dueDate: Date | null,
+    notes: string
+  ) => {
+    if (!session?.user?.id) return;
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([
+        {
+          title,
+          category,
+          priority,
+          due_date: dueDate ? dueDate.toISOString() : null,
+          notes,
+          status: "pending",
+          user_id: session.user.id,
+        },
+      ])
+      .select();
+
+    if (error) {
+      toast.error("Erro ao criar tarefa");
+    } else {
+      if (data && Array.isArray(data)) {
+        setTasks((prev) => [...prev, ...data]);
+      }
+      toast.success("Tarefa criada!");
+    }
+  };
+
+  const handleToggle = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "completed" ? "pending" : "completed";
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        status: newStatus,
+        completed_at: newStatus === "completed" ? new Date().toISOString() : null,
+      })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Erro ao atualizar tarefa");
+    } else {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                status: newStatus as TaskStatus,
+                completed_at:
+                  newStatus === "completed" ? new Date().toISOString() : null,
+              }
+            : t
+        )
+      );
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir tarefa");
+    } else {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+      toast.success("Tarefa excluída");
+    }
+  };
+
+  const handleUpdate = async (id: string, updates: Partial<Task>) => {
+    const { error } = await supabase.from("tasks").update(updates).eq("id", id);
+    if (error) {
+      toast.error("Erro ao atualizar tarefa");
+    } else {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+      );
+      toast.success("Tarefa atualizada");
+    }
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Erro ao sair");
+    } else {
+      setSession(null);
+      toast.success("Desconectado");
+    }
+  };
+
+  // -----------------------------------------------------------------
+  // UI helpers
+  // -----------------------------------------------------------------
+  const filteredTasks = tasks.filter((t) => {
+    if (filter === "completed") return t.status === "completed";
+    if (filter === "pending") return t.status === "pending";
+    return true;
+  });
+
+  const searchedTasks = filteredTasks.filter((t) =>
+    t.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedTasks = [...searchedTasks].sort((a, b) => {
+    if (sortBy === "created") {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sortBy === "priority") {
+      const order = { Alta: 3, Média: 2, Baixa: 1 };
+      return (order[b.priority] ?? 0) - (order[a.priority] ?? 0);
+    }
+    if (sortBy === "due") {
+      return (
+        (a.due_date ? new Date(a.due_date).getTime() : 0) -
+        (b.due_date ? new Date(b.due_date).getTime() : 0)
+      );
+    }
+    return 0;
+  });
+
+  // -----------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------
+  if (!session) {
+    return <AuthScreen />;
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col">
+      <Toaster />
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+          Dyad Tasks
+        </h1>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {session?.user && (
+            <ProfileSettings userId={session.user.id} onUpdate={setProfileName} />
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-slate-400 hover:text-rose-600 rounded-xl"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 p-4 space-y-6 max-w-4xl mx-auto w-full">
+        {/* Stats */}
+        <TaskStats tasks={tasks} />
+
+        {/* Form */}
+        <TaskForm onAdd={handleAddTask} />
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar tarefa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-48"
+            />
+
+            {/* Filter dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Filtrar: {filter}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filtros</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setFilter("all")}>
+                  Todas
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setFilter("pending")}>
+                  Pendentes
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setFilter("completed")}>
+                  Concluídas
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Sort dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Ordenar: {sortBy}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Ordenar por</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setSortBy("created")}>
+                  Criação
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortBy("priority")}>
+                  Prioridade
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortBy("due")}>
+                  Data de entrega
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Task list */}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
+          </div>
+        ) : (
+          <AnimatePresence>
+            {sortedTasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+              />
+            ))}
+          </AnimatePresence>
+        )}
+      </main>
+
+      <footer className="py-4 text-center text-xs text-slate-400">
+        <MadeWithDyad />
+      </footer>
+    </div>
+  );
+}
