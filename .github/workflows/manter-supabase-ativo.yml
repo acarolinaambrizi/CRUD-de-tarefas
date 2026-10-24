@@ -1,0 +1,59 @@
+# Mantém o projeto gratuito do Supabase ativo.
+# O Supabase pausa projetos gratuitos depois de 7 dias sem uso.
+# Esta automação faz uma consulta simples ao banco a cada 3 dias.
+
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 12 */3 * *"   # a cada 3 dias, por volta das 9h (horário de Brasília)
+  workflow_dispatch:           # permite rodar manualmente pela aba Actions
+
+permissions:
+  contents: write              # necessário só para o commit de manutenção abaixo
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar o banco no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TABELA: ${{ vars.SUPABASE_TABELA || 'tasks' }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Faltam os secrets SUPABASE_URL e/ou SUPABASE_ANON_KEY."
+            exit 1
+          fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/$TABELA?select=*&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Resposta do Supabase: $status"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "A consulta falhou. Confira se o projeto está ativo e se a tabela '$TABELA' existe."
+            exit 1
+          fi
+
+  manter-agendamento:
+    # O GitHub desliga tarefas agendadas em repositórios públicos sem commits há 60 dias.
+    # Este passo faz um commit pequeno só quando o último commit tem mais de 45 dias.
+    needs: ping
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commit de manutenção (só se necessário)
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          agora=$(date +%s)
+          dias=$(( (agora - ultimo) / 86400 ))
+          echo "Dias desde o último commit: $dias"
+          if [ "$dias" -ge 45 ]; then
+            date -u +"%Y-%m-%d" > .github/ultima-verificacao.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .github/ultima-verificacao.txt
+            git commit -m "Manutenção: mantém a automação ativa"
+            git push
+          fi
