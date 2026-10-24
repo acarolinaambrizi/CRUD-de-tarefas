@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meu To Do — Gerenciador de Tarefas
 
-## Getting Started
+Aplicação web de lista de tarefas com **cadastro e login de usuários**: cada pessoa acessa só as próprias tarefas e pode **criar, listar, editar e excluir** itens.
 
-First, run the development server:
+🔗 **Acesse o app:** [to-do-final-phi.vercel.app](https://to-do-final-phi.vercel.app)
+
+Projeto desenvolvido na disciplina de **Inteligência Artificial** do curso de Análise e Desenvolvimento de Sistemas (UNILAVRAS), com o objetivo de explorar o desenvolvimento de software assistido por IA.
+
+## Funcionalidades
+
+- Cadastro de conta, login e recuperação de senha
+- Tarefas vinculadas a cada usuário
+- CRUD completo: criar, listar, editar e excluir tarefas
+
+## Tecnologias
+
+- [Next.js](https://nextjs.org) (React) com TypeScript
+- Tailwind CSS e componentes [shadcn/ui](https://ui.shadcn.com)
+- [Supabase](https://supabase.com): banco de dados e autenticação
+- [Vercel](https://vercel.com): hospedagem
+
+## Como foi feito
+
+O código foi gerado com apoio do **Dyad**, uma ferramenta de desenvolvimento com IA. Meu papel foi:
+
+- definir os requisitos e as funcionalidades da aplicação;
+- escrever e refinar os comandos (prompts) dados à IA;
+- configurar o banco de dados e a autenticação no Supabase;
+- publicar a aplicação na Vercel;
+- testar o funcionamento e pedir correções até chegar à versão final.
+
+O arquivo `AI_RULES.md` contém as regras usadas para orientar a IA durante o desenvolvimento.
+
+## Como rodar localmente
+
+Pré-requisitos: [Node.js](https://nodejs.org) e um projeto no Supabase.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/acarolinaambrizi/CRUD-de-tarefas.git
+cd CRUD-de-tarefas
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Crie um arquivo `.env.local` na raiz com as chaves do seu projeto Supabase:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=sua-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Depois rode `pnpm dev` e acesse `http://localhost:3000`.
 
-## Learn More
+## O que aprendi
 
-To learn more about Next.js, take a look at the following resources:
+- Estrutura de um projeto Next.js e organização de componentes
+- Autenticação de usuários e banco de dados com Supabase
+- Publicação (deploy) de uma aplicação web na Vercel
+- Como orientar uma ferramenta de IA e revisar o código que ela produz
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Autora
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Ana Carolina Ambrizi** · [LinkedIn](https://linkedin.com/in/ana-carolina-ambrizi)
